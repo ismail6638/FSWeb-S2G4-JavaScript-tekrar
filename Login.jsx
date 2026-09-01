@@ -1,114 +1,108 @@
 import React, { useState, useEffect } from 'react';
-import { useHistory } from 'react-router-dom';
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+// En az 8 karakter, en az bir harf ve bir sayı
+const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
 
-export default function Login() {
-  const history = useHistory();
+export default function Login({ onLoginSuccess }) {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    terms: false
+    terms: false,
   });
 
-  const [errors, setErrors] = useState({
-    email: '',
-    password: ''
-  });
-
-  const [isFormValid, setIsFormValid] = useState(false);
-
-  useEffect(() => {
-    let emailErr = '';
-    let passwordErr = '';
-
-    if (formData.email && !emailRegex.test(formData.email)) {
-      emailErr = 'Geçerli bir email adresi giriniz.';
-    }
-
-    if (formData.password && !passwordRegex.test(formData.password)) {
-      passwordErr = 'Şifre en az 8 karakter, bir büyük harf, bir küçük harf, bir rakam ve bir özel karakter içermelidir.';
-    }
-
-    setErrors({ email: emailErr, password: passwordErr });
-
-    const isValid = 
-      emailRegex.test(formData.email) && 
-      passwordRegex.test(formData.password) && 
-      formData.terms;
-
-    setIsFormValid(isValid);
-  }, [formData]);
+  const [errors, setErrors] = useState({});
+  const [isValid, setIsValid] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData({
-      ...formData,
-      [name]: type === 'checkbox' ? checked : value
-    });
+    const fieldValue = type === 'checkbox' ? checked : value;
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: fieldValue,
+    }));
   };
+
+  useEffect(() => {
+    const newErrors = {};
+
+    if (formData.email && !emailRegex.test(formData.email)) {
+      newErrors.email = 'Geçerli bir e-posta adresi giriniz.';
+    }
+
+    if (formData.password && !passwordRegex.test(formData.password)) {
+      newErrors.password = 'Şifre en az 8 karakter olmalı, harf ve rakam içermelidir.';
+    }
+
+    setErrors(newErrors);
+
+    const isEmailValid = emailRegex.test(formData.email);
+    const isPasswordValid = passwordRegex.test(formData.password);
+    const isTermsAccepted = formData.terms;
+
+    setIsValid(isEmailValid && isPasswordValid && isTermsAccepted);
+  }, [formData]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (isFormValid) {
-      history.push('/success');
+    if (isValid) {
+      onLoginSuccess();
     }
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded shadow-md">
-      <h2 className="text-2xl font-bold mb-6 text-center">Giriş Yap</h2>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        
+    <div className="login-container">
+      <h2>Giriş Yap</h2>
+      <form onSubmit={handleSubmit}>
         <div>
-          <label className="block text-sm font-medium mb-1">Email</label>
+          <label htmlFor="email">E-posta:</label>
           <input
+            id="email"
             type="email"
             name="email"
-            data-cy="email-input"
             value={formData.email}
             onChange={handleChange}
-            className="w-full border p-2 rounded text-sm"
-            required
+            data-cy="email-input"
           />
-          {errors.email && <p data-cy="error-msg" className="text-red-500 text-xs mt-1">{errors.email}</p>}
+          {errors.email && (
+            <p className="error" data-cy="error-message">
+              {errors.email}
+            </p>
+          )}
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Şifre</label>
+          <label htmlFor="password">Şifre:</label>
           <input
+            id="password"
             type="password"
             name="password"
-            data-cy="password-input"
             value={formData.password}
             onChange={handleChange}
-            className="w-full border p-2 rounded text-sm"
-            required
+            data-cy="password-input"
           />
-          {errors.password && <p data-cy="error-msg" className="text-red-500 text-xs mt-1">{errors.password}</p>}
+          {errors.password && (
+            <p className="error" data-cy="error-message">
+              {errors.password}
+            </p>
+          )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            name="terms"
-            id="terms"
-            data-cy="terms-checkbox"
-            checked={formData.terms}
-            onChange={handleChange}
-          />
-          <label htmlFor="terms" className="text-sm">Şartları kabul ediyorum</label>
+        <div>
+          <label>
+            <input
+              type="checkbox"
+              name="terms"
+              checked={formData.terms}
+              onChange={handleChange}
+              data-cy="terms-checkbox"
+            />
+            Şartları kabul ediyorum
+          </label>
         </div>
 
-        <button
-          type="submit"
-          data-cy="submit-btn"
-          disabled={!isFormValid}
-          className={`p-2 rounded text-white font-bold transition-colors ${
-            isFormValid ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'
-          }`}
-        >
+        <button type="submit" disabled={!isValid} data-cy="submit-button">
           Giriş Yap
         </button>
       </form>
